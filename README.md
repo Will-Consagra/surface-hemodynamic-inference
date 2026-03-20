@@ -38,10 +38,10 @@ For all resting-state fMRI analyses, we use HCP surface-mapped 32k-vertex restin
 
 The HCP-YA data can be downloaded at https://balsa.wustl.edu/. For a given subject `SUBJ`, the relevant HCP-YA files are:
 
-- `SUBJ/MNINonLinear/Results/rfMRI_REST1_LR/rfMRI_REST1_LR_Atlas_MSMAll_hp2000_clean.dtseries.nii`
+- `SUBJ/MNINonLinear/Results/rfMRI_REST1_LR/rfMRI_REST1_LR_Atlas_MSMAll_hp2000_clean_rclean_tclean.dtseries.nii` 
 - `SUBJ/MNINonLinear/fsaverage_LR32k/SUBJ.L.midthickness_MSMAll.32k_fs_LR.surf.gii`
 
-Any conversion script is fine as long as the final local files have the names expected by the scripts. In particular:
+in `SUBJ_Rest3TRecommended` and `SUBJ_StructuralRecommended`, respectively. Any conversion script is fine as long as the final local files have the names expected by the scripts. In particular:
 
 - the `.1D` files should contain the left cortical time series only, with `32492` rows and `1200` columns
 - the surface files should be converted to `.ply`
