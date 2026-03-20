@@ -19,8 +19,8 @@ This code implements the workflow described in Sections 2–5 of the paper:
 
 The repo also ships:
 - pre-trained neural networks
-- synthetic datasets used in the simulation study
-- HCP cortical surface rs-fMRI data used in the real-data analyses
+- code for generating synthetic datasets used in the simulation study
+- documentation on pulling the HCP-YA data to reproduce the real data analysis (not shipped due to size)
 
 Most scripts use relative paths assuming they are run from the directory they live in.  
 For example:
@@ -30,7 +30,81 @@ For example:
 
 ---
 
-## Repository Details
+## Download HCP data 
+
+For all resting-state fMRI analyses, we use HCP surface-mapped 32k-vertex resting-state BOLD data after ICA-FIX preprocessing. In the local folders used by this code, the resting-state data are stored as plain-text `.1D` files with shape `32492 x 1200` (`vertices x timepoints`), and the cortical surfaces are stored as `.ply` meshes converted from the corresponding HCP 32k midthickness surfaces.
+
+### General HCP files to download
+
+The HCP-YA data can be downloaded at https://balsa.wustl.edu/. For a given subject `SUBJ`, the relevant HCP-YA files are:
+
+- `SUBJ/MNINonLinear/Results/rfMRI_REST1_LR/rfMRI_REST1_LR_Atlas_MSMAll_hp2000_clean.dtseries.nii`
+- `SUBJ/MNINonLinear/fsaverage_LR32k/SUBJ.L.midthickness_MSMAll.32k_fs_LR.surf.gii`
+
+Any conversion script is fine as long as the final local files have the names expected by the scripts. In particular:
+
+- the `.1D` files should contain the left cortical time series only, with `32492` rows and `1200` columns
+- the surface files should be converted to `.ply`
+
+### Calibration
+
+To calibrate the simulation hyperparameters, download HCP-YA subject `103818` and extract the left-hemisphere `REST1_LR` surface time series. Place it at:
+
+- `Calibration/Data_103818/103818_1_LR.L.1D`
+
+### SimStudy
+
+Download the rsHRF package (github.com/compneuro-da/rsHRF) and place it in the `SimStudy/CompetingMethods` subfolder. Create the subdirectories `SimStudy/data`, `SimStudy/UQ`, and `SimStudy/UQ/2param_bootsamples` which will hold results.
+
+### RealDataAnalysis/reproducibility
+
+Download the baseline and retest `REST1_LR` left-hemisphere data for each of the subjects
+
+- `103818`
+- `122317`
+- `139839`
+
+and convert the corresponding left midthickness surfaces to `.ply.` Place the baseline-visit files at:
+
+- `RealDataAnalysis/reproducibility/HCP_retest/SUBJ_1_LR.L.1D`
+- `RealDataAnalysis/reproducibility/HCP_retest/SUBJ.L.midthickness.32k_fs_LR.ply`
+
+Place the retest-visit files at:
+
+- `RealDataAnalysis/reproducibility/HCP_retest/Retest/SUBJ_1_LR.L.1D`
+- `RealDataAnalysis/reproducibility/HCP_retest/Retest/SUBJ.L.midthickness.32k_fs_LR.ply`
+
+where `SUBJ` is one of `103818`, `122317`, or `139839`.
+
+Create the subdirectory `RealDataAnalysis/reproducibility/results`, which will hold the output of 
+`hcp_restest_1param_inv.py`.
+
+### RealDataAnalysis/population
+
+The population analysis uses the 100 HCP-YA unrelated subjects listed in:
+
+- `RealDataAnalysis/population/hcp_ya_unrelated_100_subjects.txt`
+
+For each subject `SUBJ` in that list, download:
+
+- `SUBJ/MNINonLinear/Results/rfMRI_REST1_LR/rfMRI_REST1_LR_Atlas_MSMAll_hp2000_clean.dtseries.nii`
+- `SUBJ/MNINonLinear/fsaverage_LR32k/SUBJ.L.midthickness_MSMAll.32k_fs_LR.surf.gii`
+
+Then convert/place the outputs into:
+
+- `RealDataAnalysis/population/S1200_Rest3TRecommended/SUBJ.L.1D`
+- `RealDataAnalysis/population/S1200_StructuralRecommended/SUBJ.L.midthickness_MSMAll.32k_fs_LR.ply`
+
+Create the subdirectories `RealDataAnalysis/population/S1200_RestT3_Estimates` and `RealDataAnalysis/population/fpca`, which will hold results.
+
+### RealDataAnalysis/connectivity
+
+The connectivity case study uses HCP-YA subject `103818` from the baseline visit. Download the HCP-YA subject `103818` and extract the left-hemisphere `REST1_LR` surface time series, and the subject-specific left midthickness surface. Place them at:
+
+- `RealDataAnalysis/connectivity/data/103818_1_LR.L.1D`
+- `RealDataAnalysis/connectivity/data/103818.L.midthickness.32k_fs_LR.ply`
+
+## Code Details
 
 ### 1. `Calibration/`
 
@@ -40,7 +114,7 @@ Estimate simulator hyperparameters using the spectral moment-matching approach f
 | --- | --- |
 | `Calibration/calibrate_1parambasis.ipynb` | Calibrates simulator hyperparameters for the one-parameter model 
 | `Calibration/calibrate_2parambasis.ipynb` | Calibrates simulator hyperparameters for the two-parameter model. 
-| `Calibration/Data_103818/` | Surface mesh and rsfMRI files for HCP subject `103818`, used as to calibrate. 
+| `Calibration/Data_103818/` | rsfMRI data for HCP subject `103818`, used to calibrate simulators. 
 
 ### 2. `ModelTraining/`
 
@@ -65,9 +139,9 @@ Reproduce experimental results from Section **5.1**. Most of the scripts print r
 
 | Path | Description |
 | --- | --- | 
-| `SimStudy/posterior_inverter_1param.py` | Synthetic inversion script for the one-parameter model. | 
+| `SimStudy/posterior_inverter_1param.py` | Synthetic inversion script for the one-parameter hemodynamic model. | 
 | `SimStudy/UQ_1param.py` | Runs the one-parameter double-bootstrap UQ procedure on synthetic data. WARNING: TAKES A LONG TIME, SHOULD DISTRIBUTE AND RUN ON CLUSTER. |
-| `SimStudy/posterior_inverter_2param.py` | Main synthetic inversion script for the two-parameter basis model. |
+| `SimStudy/posterior_inverter_2param.py` | Synthetic inversion script for the two-parameter hemodynamic model. |
 | `SimStudy/UQ_2param.py` | Runs the two-parameter double-bootstrap UQ procedure on synthetic data. WARNING: TAKES A LONG TIME, SHOULD DISTRIBUTE AND RUN ON CLUSTER. | 
 
 #### Competing methods
@@ -78,18 +152,6 @@ Reproduce experimental results from Section **5.1**. Most of the scripts print r
 | `SimStudy/CompetingMethods/unrolled.py` | Trains the deep unrolled prior baseline (DUP) for the one-parameter synthetic study. |
 | `SimStudy/CompetingMethods/unrolled_eval.py` | Evaluates the trained DUP model on the one-parameter synthetic study. |
 | `SimStudy/CompetingMethods/rsHRF_eval_sim.m` | MATLAB code for the `rsHRF` competitor used in the two-parameter synthetic study. | 
-| `SimStudy/CompetingMethods/rsHRF/` | Copied MATLAB package used by `rsHRF_eval_sim.m`. |
-
-#### Data
-
-| Path | Description | 
-| --- | --- | 
-| `SimStudy/cortical_mesh/midthickness.32k_fs_LR.ply` | Left-hemisphere cortical mesh used for synthetic surface experiments. |
-| `SimStudy/data/sim1data_surface.mat` | Synthetic one-parameter rsfMRI dataset used in the simulation study. | 
-| `SimStudy/data/sim2data_surface.mat` | Synthetic two-parameter rsfMRI dataset used in the simulation study. | 
-| `SimStudy/data/h_t.pth` | Canonical HRF basis function used in the two-parameter model. | 
-| `SimStudy/data/dh_t.pth` | Time-derivative HRF basis used in the two-parameter model. | 
-| `SimStudy/UQ/` | Holds bootstrap samples and other outputs from the UQ scripts. | 
 
 ### 5. `RealDataAnalysis`
 
@@ -105,11 +167,8 @@ HCP population analysis in Section **5.2.2**.
 | `RealDataAnalysis/population/hcp_1param_analysis.py` | Performs downstream population analysis on the reconstructed subject-level fields: mean field, variability, fPCA, and proof-of-concept regressions on subject-level outcomes. |
 | `RealDataAnalysis/population/SMs.csv` | HCP subject-measure table used in the population regression analyses. | 
 | `RealDataAnalysis/population/conf.csv` | Confound/covariate table used to adjust the population regressions. | 
-| `RealDataAnalysis/population/S1200_Rest3TRecommended/` | Input rsfMRI time series for the 100 unrelated HCP-YA subjects used in the population study. NOT SHIPPED WITH CODE DUE TO SIZE. WILL NEED TO DOWNLOAD THESE FROM PUBLICLY AVAILABLE HCP REPO! |
-| `RealDataAnalysis/population/S1200_StructuralRecommended/` | Subject-specific cortical surface meshes corresponding to the population study inputs. | 
-| `RealDataAnalysis/population/S1200_templates/` | Template surfaces used for visualization and fPCA summaries. | 
-| `RealDataAnalysis/population/S1200_RestT3_Estimates/` | Output directory populated by `hcp_1param_inf.py` with subject-level hemodynamic estimates. | 
-| `RealDataAnalysis/population/fpca/` | Output directory populated by `hcp_1param_analysis.py` containing the mean field, standard deviation, and eigenfunctions. |
+| `RealDataAnalysis/population/hcp_ya_unrelated_100_subjects.txt` | Subject IDs for the 100-subject HCP-YA unrelated cohort used in the population study. |
+| `RealDataAnalysis/population/S1200_templates/` | Template surfaces used for visualization and fPCA. | 
 
 #### Reproducibility
 
@@ -129,14 +188,14 @@ This directory contains the connectivity analysis from Section **5.2.3**.
 | Path | Description | 
 | --- | --- | 
 | `RealDataAnalysis/connectivity/connectivity_analysis_1param.py` | Compares effective connectivity using raw BOLD, canonical-HRF deconvolution, and deconvolution under the estimated spatially varying hemodynamics. |
-| `RealDataAnalysis/connectivity/data/` | Subject-level input BOLD/surface files used in the connectivity case study. | 
 | `RealDataAnalysis/connectivity/hemo_inf/` | Precomputed hemodynamic reconstructions used as inputs to the connectivity analysis. |
 | `RealDataAnalysis/connectivity/atlas/` | Glasser atlas labels and lookup tables. | 
-| `RealDataAnalysis/connectivity/results/` | Output directory for connectivity figures and parcel summaries (Figure 5). | 
 
 ---
 
 ## Minimal Reproduction Workflow
+
+**First, tollow all steps in Section `Download HCP data` to pull the data and set up proper directory structure.**
 
 ### To reproduce the synthetic experiments
 1. Use the pretrained models from `PreTrainedModels/` 
@@ -152,5 +211,3 @@ This directory contains the connectivity analysis from Section **5.2.3**.
    - `RealDataAnalysis/reproducibility/hcp_restest_1param_inv.py` for Section 5.2.1
    - `RealDataAnalysis/population/hcp_1param_analysis.py` for Section 5.2.2
    - `RealDataAnalysis/connectivity/connectivity_analysis_1param.py` for Section 5.2.3
-
-
