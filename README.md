@@ -133,7 +133,7 @@ These are the pre-trained models that are used by the analysis scripts. They cor
 
 ### 4. `SimStudy/`
 
-Reproduce experimental results from Section **5.1**. Most of the scripts print results to screen that can then be assembled to form the results in Table 1.
+Reproduce experimental results from Section **5.1**. Most of the scripts print results to screen that can then be assembled to form the results in Table 1 (see results printed under `theta`).
 
 #### Main scripts
 
