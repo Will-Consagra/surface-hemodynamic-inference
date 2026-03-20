@@ -87,7 +87,7 @@ The population analysis uses the 100 HCP-YA unrelated subjects listed in:
 
 For each subject `SUBJ` in that list, download:
 
-- `SUBJ/MNINonLinear/Results/rfMRI_REST1_LR/rfMRI_REST1_LR_Atlas_MSMAll_hp2000_clean.dtseries.nii`
+- `SUBJ/MNINonLinear/Results/rfMRI_REST1_LR/rfMRI_REST1_LR_Atlas_MSMAll_hp2000_clean_rclean_tclean.dtseries.nii`
 - `SUBJ/MNINonLinear/fsaverage_LR32k/SUBJ.L.midthickness_MSMAll.32k_fs_LR.surf.gii`
 
 Then convert/place the outputs into:
