@@ -213,6 +213,15 @@ class MLP(nn.Module):
 		x = x.view(x.size(0), -1)
 		return self.mlp(x) 
 
+## sparse cholesky to avoid memory blow up
+def sample_from_sparse_precision(Q_sp, z, jitter=0.0):
+    Q_csc = scipy.sparse.csc_matrix(Q_sp)
+    factor = cholesky(Q_csc, beta=jitter)
+    L = factor.L().tocsc()
+    x_perm = scipy.sparse.linalg.spsolve_triangular(L.T, z, lower=False)
+    x = factor.apply_Pt(x_perm)
+    return np.asarray(x).reshape(-1, 1)
+
 M = 1200; TR = 0.72 ## HCP-parameters 
 burn_in = 100
 M_record = M; ## get to 'steady state'
@@ -276,10 +285,9 @@ Q_2_true_sp = tau2_2_true * ((kappa_2_true**2) * C + G).T @ C_inv @ ((kappa_2_tr
 simfname = "data/sim2data_surface.mat"
 if not os.path.exists(simfname):
 	np.random.seed(0)
-	z1 = np.random.randn(V); z2 = np.random.randn(V)
-	L1 = np.linalg.cholesky(Q_1_true_sp.todense()); L2 = np.linalg.cholesky(Q_2_true_sp.todense())
-	theta_tilde_true_1 = torch.from_numpy(np.linalg.solve(L1.T, z1)).float().view(-1,1).to(device) 
-	theta_tilde_true_2 = torch.from_numpy(np.linalg.solve(L2.T, z2)).float().view(-1,1).to(device) 
+	z1 = np.random.randn(V,1); z2 = np.random.randn(V,1)
+	theta_tilde_true_1 = torch.from_numpy(sample_from_sparse_precision(Q_1_true_sp,z1)).float().to(device) 
+	theta_tilde_true_2 = torch.from_numpy(sample_from_sparse_precision(Q_2_true_sp,z2)).float().to(device) 
 	theta_tilde_true = torch.cat((0.5*theta_tilde_true_1, theta_tilde_true_2), dim=-1)
 	theta_true = sim_model.theta_inv_link(theta_tilde_true)
 	var_rf_1 = (torch.lgamma(nu_true).exp() /(torch.lgamma(nu_true + 1).exp() * (4 * math.pi) * torch.tensor(kappa_1_true).pow(2 * nu_true))) * (1./tau2_1_true)
@@ -575,35 +583,17 @@ hrf_kernels_theta_estim, _ = sim_model.hrf_model._compute_kernel(theta_hat)
 
 ## in the parameter space 
 print("g(theta)")
-print("Pointwise Inference Results")
-theta_tilde_init_hat = vec2mat(theta_tildes_trajectory[:,0])
-theta_init_hat = sim_model.theta_inv_link(theta_tilde_init_hat)
-hrf_kernels_theta_init_hat, _ = sim_model.hrf_model._compute_kernel(theta_init_hat)
-
-print("Normalized L2 Error", torch.mean((theta_tilde_init_hat - theta_tilde_true)**2,dim=0)/torch.mean(theta_tilde_true**2, dim=0))
-print("Bias", torch.mean(theta_tilde_init_hat - theta_tilde_true, dim=0))
-
 print("Spatial Inference Results")
 print("Normalized L2 Error", torch.mean((theta_tilde_hat - theta_tilde_true)**2,dim=0)/torch.mean(theta_tilde_true**2, dim=0))
 print("Bias", torch.mean(theta_tilde_hat - theta_tilde_true, dim=0))
 
 print("theta")
-
-print("Pointwise Inference Results")
-print("L2 Error", torch.mean((theta_init_hat - theta_true)**2,dim=0))
-print("Normalized L2 Error", torch.mean((theta_init_hat - theta_true)**2,dim=0)/torch.mean(theta_true**2, dim=0))
-print("Bias", torch.mean(theta_init_hat - theta_true, dim=0))
-
 print("Spatial Inference Results")
 print("L2 Error", torch.mean((theta_hat - theta_true)**2,dim=0))
 print("Normalized L2 Error", torch.mean((theta_hat - theta_true)**2,dim=0)/torch.mean(theta_true**2, dim=0))
 print("Bias", torch.mean(theta_hat - theta_true, dim=0))
 
-"""
 evalfname = "data/sim2data_inference_proposed.mat"
-savemat(evalfname, {"hrf_kernel_pointwise":hrf_kernels_theta_init_hat.cpu().detach().numpy(),
-					"hrf_kernel_estim":hrf_kernels_theta_estim.cpu().detach().numpy(),
+savemat(evalfname, {"hrf_kernel_estim":hrf_kernels_theta_estim.cpu().detach().numpy(),
 					"theta_hat":theta_hat.cpu().detach().numpy(),
-					"theta_hat_pointwise":theta_init_hat.cpu().detach().numpy(),
 					"theta_tilde_hat":theta_tilde_hat.cpu().detach().numpy()})
-"""
